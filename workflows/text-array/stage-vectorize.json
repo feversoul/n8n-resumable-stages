@@ -1,0 +1,235 @@
+{
+  "name": "Stages · Vectorize News Record (stand-in, text[])",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Vectorize News Record (stand-in)\nGets rows from the parent, does one piece of \"work\" per row and adds `vectorize` to that row's `status`. Returns the rows with their new status, which is what the next IF in the parent looks at.",
+        "height": 150,
+        "width": 560
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -200
+      ],
+      "id": "2ae03af3-bb4d-41fa-8104-53eba7f2133b",
+      "name": "About 0"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "626c8988-0dd8-4ea4-8abf-8091d76476d1",
+      "name": "When called by the parent"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { stage: 'vectorize', ids: $input.all().map((item) => item.json.id) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "5277597e-012c-4f31-8092-d174991eabcf",
+      "name": "This call"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://standin:8080/call",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "861c1be8-3a33-4e67-8e4e-202f1b5ea434",
+      "name": "Record the call"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('When called by the parent').all().map((item) => ({ json: item.json }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "d5d6eded-2b57-4c45-8a82-90f8ae466871",
+      "name": "Rows"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        880,
+        0
+      ],
+      "id": "bd204ec7-4384-4087-850c-dfbef621d516",
+      "name": "One row at a time"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://standin:8080/work",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ stage: 'vectorize', id: $json.id }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "id": "39899f48-c5d8-4b1a-8a7d-50fb118c9e79",
+      "name": "Do the work"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE events\nSET status = CASE WHEN status @> ARRAY[$2::text] THEN status ELSE array_append(status, $2::text) END\nWHERE id = $1\nRETURNING id, title, status",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $json.tag] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1320,
+        100
+      ],
+      "id": "c35f6e97-9888-4bf3-84bd-79ca219698ba",
+      "name": "Tag the row",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -100
+      ],
+      "id": "bcc81243-d2b4-440b-82fa-a9c8dfab7700",
+      "name": "Return the rows"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "One row at a time": {
+      "main": [
+        [
+          {
+            "node": "Return the rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Do the work",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Do the work": {
+      "main": [
+        [
+          {
+            "node": "Tag the row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag the row": {
+      "main": [
+        [
+          {
+            "node": "One row at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When called by the parent": {
+      "main": [
+        [
+          {
+            "node": "This call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "This call": {
+      "main": [
+        [
+          {
+            "node": "Record the call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record the call": {
+      "main": [
+        [
+          {
+            "node": "Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rows": {
+      "main": [
+        [
+          {
+            "node": "One row at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesTextStageVectorize"
+}

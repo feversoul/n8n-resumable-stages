@@ -1,0 +1,323 @@
+{
+  "name": "Stages · Vectorize News Record with its own work list (stand-in, jsonb)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Vectorize News Record with its own work list (stand-in)\nIgnores what the parent sends. **My work list** selects the rows that carry `candidate` and do not carry `vectorize` yet. Each row is tagged as soon as it is done. Returns one item with the count, also when there was nothing to do.",
+        "height": 170,
+        "width": 620
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ],
+      "id": "9a3f062c-3c2b-418e-8c3a-8d2158383e84",
+      "name": "About 0"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "66cf23a6-38e0-4d33-8bba-65b5230c00eb",
+      "name": "When called by the parent"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, status\nFROM events_jsonb\nWHERE status ?| ARRAY['candidate']\n  AND NOT status ?| ARRAY['vectorize']\nORDER BY id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "id": "a448bc28-3959-42dc-8cb8-193316b06dad",
+      "name": "My work list",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// An empty work list arrives as one empty item (Always Output Data).\nreturn [{ json: { stage: 'vectorize', ids: $input.all().map((item) => item.json.id).filter((id) => id !== undefined) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "5cc014bd-e211-499b-85df-c95c704e1cb3",
+      "name": "This call"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://standin:8080/call",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "7239cd04-ffe9-48b0-8927-b65619c1d3ce",
+      "name": "Record the call"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "304042a1-52a6-4a3d-844b-c81d99490134",
+              "leftValue": "={{ $('This call').first().json.ids.length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "e70c5acd-ab5f-45f0-8cd4-c5d77f7ca162",
+      "name": "Anything to do?"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('My work list').all().map((item) => ({ json: item.json }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -100
+      ],
+      "id": "2b97fbb4-3d6b-46c2-83d3-46ec6c4b1f1c",
+      "name": "Rows"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1320,
+        -100
+      ],
+      "id": "03e96e46-f780-4f97-8a0a-5a3b88b3eb21",
+      "name": "One row at a time"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://standin:8080/work",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ stage: 'vectorize', id: $json.id }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "332a7559-3fb9-43d6-89b0-e90448dd0d05",
+      "name": "Do the work"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE events_jsonb\nSET status = CASE WHEN status @> to_jsonb($2::text) THEN status ELSE status || to_jsonb($2::text) END\nWHERE id = $1\nRETURNING id, title, status",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $json.tag] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1760,
+        0
+      ],
+      "id": "71fdc487-8965-425b-8340-21a0962a1b1d",
+      "name": "Tag the row",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { stage: 'vectorize', rows: $('This call').first().json.ids.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        100
+      ],
+      "id": "4380281a-deb9-4e51-8ba6-6188875b7325",
+      "name": "Report"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "One row at a time": {
+      "main": [
+        [
+          {
+            "node": "Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Do the work",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Do the work": {
+      "main": [
+        [
+          {
+            "node": "Tag the row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag the row": {
+      "main": [
+        [
+          {
+            "node": "One row at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When called by the parent": {
+      "main": [
+        [
+          {
+            "node": "My work list",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "My work list": {
+      "main": [
+        [
+          {
+            "node": "This call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "This call": {
+      "main": [
+        [
+          {
+            "node": "Record the call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record the call": {
+      "main": [
+        [
+          {
+            "node": "Anything to do?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to do?": {
+      "main": [
+        [
+          {
+            "node": "Rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rows": {
+      "main": [
+        [
+          {
+            "node": "One row at a time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesJsonbQueueVectorize"
+}

@@ -1,0 +1,162 @@
+{
+  "name": "Stages · Stage queues (jsonb)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Stage queues\nThree sub-workflow calls in a row and nothing else. Each sub-workflow starts with its own query (\"ready for me, not tagged by me yet\"), so the parent has no Select, no Switch and no wire going back. Each sub-workflow returns one summary item, which starts the next one.\n\nReplace the Webhook with your own trigger.",
+        "height": 170,
+        "width": 760
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -280
+      ],
+      "id": "6a409ae4-aaa5-4d7a-809a-9812ab3bfc16",
+      "name": "About 0"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stages/jsonb/stage-queues",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2d4e31d7-76f7-4cf3-8bee-7fe6d584953f",
+      "name": "Webhook",
+      "webhookId": "967045c9-ad1f-4240-82ed-8a7159fb2bfd"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesJsonbQueueVectorize"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "bd68deb1-db52-4a47-8710-bf8b6167925e",
+      "name": "Vectorize News Record",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesJsonbQueueDuplicate"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "b8fd8c52-6f82-42a3-8653-99c49b637ef9",
+      "name": "Duplicate Finder",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesJsonbQueueRelevancy"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "b5b6b0a4-9825-49e7-8c68-892e4bb61107",
+      "name": "Event Relevancy Screening",
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Vectorize News Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vectorize News Record": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Finder": {
+      "main": [
+        [
+          {
+            "node": "Event Relevancy Screening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesJsonbStageQueues"
+}

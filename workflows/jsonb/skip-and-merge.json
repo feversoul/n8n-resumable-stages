@@ -1,0 +1,414 @@
+{
+  "name": "Stages · Skip and merge (jsonb)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Skip and merge\nThe table is read once. For every stage: rows that already carry its tag take the lower wire, the others go through the sub-workflow, and a **Merge** (Append) joins both before the next stage. So every stage is entered at most once, with exactly the rows that still need it.\n\nThe sub-workflow must return the rows with their new `status`. Replace the Webhook with your own trigger.",
+        "height": 190,
+        "width": 760
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ],
+      "id": "ee025486-e6c3-4c35-8867-af2b51cd330b",
+      "name": "About 0"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stages/jsonb/skip-and-merge",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "86927a85-ba86-40ea-85da-83a481c439c1",
+      "name": "Webhook",
+      "webhookId": "93505606-4479-4fad-86f9-f7cbb75be727"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, status FROM events_jsonb ORDER BY id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "id": "87171578-7a2a-4f67-8ef9-330f89eb5b9a",
+      "name": "Select rows from a table",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2843744e-45f7-4069-8a06-45daedaf362c",
+              "leftValue": "={{ !$json.status.some((tag) => ['vectorize'].includes(tag)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "80ba8336-17c0-4b42-8f84-e494ad000efc",
+      "name": "Needs Vectorize News Record?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesJsonbStageVectorize"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        -100
+      ],
+      "id": "e7811919-94d2-4894-8dd1-95746b64dee0",
+      "name": "Vectorize News Record"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "9d53115a-ccf5-4b25-8d18-2b4383b6230b",
+      "name": "After Vectorize News Record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bbeb6279-6ff5-4b39-8a9d-89682162ab85",
+              "leftValue": "={{ !$json.status.some((tag) => ['duplicate', 'unique'].includes(tag)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "b8bc0d16-3a6d-4f2b-8b79-3a686aef7baa",
+      "name": "Needs Duplicate Finder?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesJsonbStageDuplicate"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        -100
+      ],
+      "id": "2c300b73-6423-4717-8a8b-e6568a48f6fb",
+      "name": "Duplicate Finder"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1540,
+        0
+      ],
+      "id": "ca0d8149-e039-4116-8b79-30af67cdf81d",
+      "name": "After Duplicate Finder"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "62b582a4-23cf-4747-88ee-8a18cb59673b",
+              "leftValue": "={{ !$json.status.some((tag) => ['relevant', 'irrelevant'].includes(tag)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        0
+      ],
+      "id": "f656c57d-f9c8-43a1-83b5-2182e1886f10",
+      "name": "Needs Event Relevancy Screening?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesJsonbStageRelevancy"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        -100
+      ],
+      "id": "00dc42ec-7994-4d38-8424-cec8daec0902",
+      "name": "Event Relevancy Screening"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2200,
+        0
+      ],
+      "id": "5a3e781a-bcaa-417e-8d30-aeb0075366d4",
+      "name": "After Event Relevancy Screening"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "Needs Vectorize News Record?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Vectorize News Record?": {
+      "main": [
+        [
+          {
+            "node": "Vectorize News Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "After Vectorize News Record",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Vectorize News Record": {
+      "main": [
+        [
+          {
+            "node": "After Vectorize News Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "After Vectorize News Record": {
+      "main": [
+        [
+          {
+            "node": "Needs Duplicate Finder?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Duplicate Finder?": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Finder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "After Duplicate Finder",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Duplicate Finder": {
+      "main": [
+        [
+          {
+            "node": "After Duplicate Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "After Duplicate Finder": {
+      "main": [
+        [
+          {
+            "node": "Needs Event Relevancy Screening?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Event Relevancy Screening?": {
+      "main": [
+        [
+          {
+            "node": "Event Relevancy Screening",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "After Event Relevancy Screening",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Event Relevancy Screening": {
+      "main": [
+        [
+          {
+            "node": "After Event Relevancy Screening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesJsonbSkipAndMerge"
+}

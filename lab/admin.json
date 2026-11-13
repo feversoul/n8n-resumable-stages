@@ -1,0 +1,174 @@
+{
+  "name": "Stages lab · Admin (seed and read the table)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stages/admin/seed",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9ba3f887-30d9-4ba3-8600-7a65581cfed6",
+      "name": "Seed",
+      "webhookId": "819a3905-4597-4b95-8622-94eaf17949c5"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=TRUNCATE {{ $('Seed').first().json.body.store === 'jsonb' ? 'events_jsonb' : 'events' }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "id": "21f65cdc-8cd7-4cf6-820c-516a5c06366f",
+      "name": "Empty the table",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO {{ $('Seed').first().json.body.store === 'jsonb' ? 'events_jsonb' : 'events' }} (id, title, status)\nSELECT n, 'Event ' || n, {{ $('Seed').first().json.body.store === 'jsonb' ? \"'[\\\"candidate\\\"]'::jsonb\" : \"ARRAY['candidate']\" }}\nFROM generate_series(1, $1::int) AS n\nRETURNING id",
+        "options": {
+          "queryReplacement": "={{ [$('Seed').first().json.body.rows] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "id": "607ccb8e-6915-4bd2-823c-5d8357c5dd48",
+      "name": "Insert candidates",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { rows: $input.all().length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "67ff307c-b87e-484d-8f5e-178bc6399d23",
+      "name": "Seeded"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stages/admin/state",
+        "responseMode": "lastNode",
+        "options": {},
+        "responseData": "allEntries"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        220
+      ],
+      "id": "176f29f0-bcb7-4390-8db9-8f37d591ba8b",
+      "name": "State",
+      "webhookId": "3109aafd-d665-47a0-8bdf-bd9892d623f7"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, status FROM {{ $('State').first().json.body.store === 'jsonb' ? 'events_jsonb' : 'events' }} ORDER BY id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        220
+      ],
+      "id": "b5d57f44-1816-4a66-86f2-d068a0dd009f",
+      "name": "Read the table",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      },
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Seed": {
+      "main": [
+        [
+          {
+            "node": "Empty the table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty the table": {
+      "main": [
+        [
+          {
+            "node": "Insert candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert candidates": {
+      "main": [
+        [
+          {
+            "node": "Seeded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "State": {
+      "main": [
+        [
+          {
+            "node": "Read the table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesLabAdmin"
+}

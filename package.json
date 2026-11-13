@@ -1,0 +1,14 @@
+{
+  "name": "n8n-resumable-stages",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Resumable multi-stage n8n pipeline on Postgres status tags: why a stage sub-workflow runs twice after an interruption, and two structures that run each stage once and still skip finished rows, measured on n8n 2.47.7",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test:e2e": "node scripts/e2e.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

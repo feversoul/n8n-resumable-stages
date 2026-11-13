@@ -1,0 +1,341 @@
+{
+  "name": "Stages lab · IF chain without Merge",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## IF chain without Merge\nLike \"Skip and merge\", but the sub-workflow and the skip wire both go straight into the next IF. That IF then runs once per wire, and so does the stage behind it.",
+        "height": 150,
+        "width": 700
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ],
+      "id": "6427740e-4b25-40f2-88b1-2f73b8acb726",
+      "name": "About 0"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stages/text/if-chain",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "30f70730-48c1-420b-8f39-36e59e7ef7cd",
+      "name": "Webhook",
+      "webhookId": "36d0d628-b750-47c9-8bb9-75c63a328be3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, title, status FROM events ORDER BY id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "id": "33e8acbc-f03f-4464-80ec-30369ab45825",
+      "name": "Select rows from a table",
+      "credentials": {
+        "postgres": {
+          "id": "stagesPostgres",
+          "name": "Stages Postgres"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3abe3e5c-cf44-448d-8b9c-0ff764f82fc6",
+              "leftValue": "={{ !$json.status.some((tag) => ['vectorize'].includes(tag)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "0291929b-6220-40cf-80ed-dee6530f9b02",
+      "name": "Needs Vectorize News Record?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesTextStageVectorize"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        -100
+      ],
+      "id": "b56c4aef-08f5-43bc-8784-7fefb68f8097",
+      "name": "Vectorize News Record"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fab624ae-61d2-4529-83c1-a7e7cb04930f",
+              "leftValue": "={{ !$json.status.some((tag) => ['duplicate', 'unique'].includes(tag)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "ebac69b6-5510-4773-8b0d-76ee1c45270a",
+      "name": "Needs Duplicate Finder?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesTextStageDuplicate"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -100
+      ],
+      "id": "42b51a4d-cb23-454f-84ab-d16ad879f562",
+      "name": "Duplicate Finder"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ab9616fe-4cc8-44b2-81bf-12a7dfe0aaec",
+              "leftValue": "={{ !$json.status.some((tag) => ['relevant', 'irrelevant'].includes(tag)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ],
+      "id": "11fb33e5-7d5c-45d8-8f78-cf07bd928f44",
+      "name": "Needs Event Relevancy Screening?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesTextStageRelevancy"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        -100
+      ],
+      "id": "ae479c44-d1de-4552-8e9e-6f1fac986105",
+      "name": "Event Relevancy Screening"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Select rows from a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select rows from a table": {
+      "main": [
+        [
+          {
+            "node": "Needs Vectorize News Record?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Vectorize News Record?": {
+      "main": [
+        [
+          {
+            "node": "Vectorize News Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Needs Duplicate Finder?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vectorize News Record": {
+      "main": [
+        [
+          {
+            "node": "Needs Duplicate Finder?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Duplicate Finder?": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Finder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Needs Event Relevancy Screening?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Finder": {
+      "main": [
+        [
+          {
+            "node": "Needs Event Relevancy Screening?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Event Relevancy Screening?": {
+      "main": [
+        [
+          {
+            "node": "Event Relevancy Screening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesLabIfChain"
+}

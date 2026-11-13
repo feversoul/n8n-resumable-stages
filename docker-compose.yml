@@ -1,0 +1,65 @@
+# n8n with every workflow of this repo imported and active, a PostgreSQL with
+# the two example tables, and the stand-in that counts what the stages receive.
+#   docker compose up -d      editor on http://localhost:5678
+# Already have n8n? You only need the workflow files: see "Add it to your n8n"
+# in the README.
+
+services:
+  n8n:
+    image: ${N8N_IMAGE:-n8nio/n8n:2.47.7}
+    restart: unless-stopped
+    entrypoint: ["sh", "/bootstrap/bootstrap.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-stages-local-key}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      STAGES_DB_PASSWORD: ${STAGES_DB_PASSWORD:-stages-local-only}
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/bootstrap/workflows:ro
+      - ./lab:/bootstrap/lab:ro
+      - ./docker/bootstrap.sh:/bootstrap/bootstrap.sh:ro
+      - ./docker/prepare.mjs:/bootstrap/prepare.mjs:ro
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+
+  # Holds the example tables `events` (status text[]) and `events_jsonb`
+  # (status jsonb), 137 rows each. n8n itself stays on SQLite.
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stages
+      POSTGRES_PASSWORD: ${STAGES_DB_PASSWORD:-stages-local-only}
+      POSTGRES_DB: stages
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stages -d stages"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    volumes:
+      - stages_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  # Stand-in for the work of the stages. It counts every sub-workflow call and
+  # every row, and can interrupt a stage on request.
+  #   GET /report
+  standin:
+    image: node:22-alpine
+    restart: unless-stopped
+    command: ["node", "/app/standin.mjs"]
+    read_only: true
+    volumes:
+      - ./docker/standin.mjs:/app/standin.mjs:ro
+    ports:
+      - "${STANDIN_PORT:-8080}:8080"
+
+volumes:
+  n8n_data:
+  stages_data:

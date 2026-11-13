@@ -1,0 +1,162 @@
+{
+  "name": "Stages · Stage queues (text[])",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Stage queues\nThree sub-workflow calls in a row and nothing else. Each sub-workflow starts with its own query (\"ready for me, not tagged by me yet\"), so the parent has no Select, no Switch and no wire going back. Each sub-workflow returns one summary item, which starts the next one.\n\nReplace the Webhook with your own trigger.",
+        "height": 170,
+        "width": 760
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -280
+      ],
+      "id": "a22d367b-63a3-44c5-81f3-29808fc6417b",
+      "name": "About 0"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stages/text/stage-queues",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e8ee4301-3c47-48dd-82a2-fb2ceddfb945",
+      "name": "Webhook",
+      "webhookId": "7d0c7f4b-c7e6-4c4e-8094-bc14446760c2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesTextQueueVectorize"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "5d0bf2df-f057-4b2d-84e4-6f4101e84fa8",
+      "name": "Vectorize News Record",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesTextQueueDuplicate"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "494f3a39-fae7-4df6-809d-f6a95737cf40",
+      "name": "Duplicate Finder",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "stagesTextQueueRelevancy"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "7d25ccca-fde2-4cc4-8906-5b3dff7482d2",
+      "name": "Event Relevancy Screening",
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Vectorize News Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vectorize News Record": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate Finder": {
+      "main": [
+        [
+          {
+            "node": "Event Relevancy Screening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "stagesTextStageQueues"
+}
