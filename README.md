@@ -108,7 +108,7 @@ Works on any n8n that can reach your Postgres, n8n Cloud included.
 3. Open each Execute Sub-workflow node and pick the sub-workflow again; an import through the editor gives workflows new ids.
 4. Publish the sub-workflows first, then the parent. n8n 2.47.7 refuses to publish a parent whose sub-workflows are not published.
 5. Replace the table and column names in the SQL, the tags in the IF conditions and queries, and the Webhook with your own trigger.
-6. Replace `Do the work` in each stand-in stage with your real stage, or copy only the structure into your own workflows: the first query node for Stage queues, the IF and Merge for Skip and merge.
+6. In each stand-in stage, replace `Do the work` with your real stage and remove `Record the call`: both post to the test stand-in at `http://standin:8080`, which your n8n cannot reach. Connect the nodes on either side of `Record the call` to each other. Or copy only the structure into your own workflows: the first query node for Stage queues, the IF and Merge for Skip and merge.
 
 To try it locally instead: `docker compose up -d`, then open http://localhost:5678. The stack brings a Postgres with both tables (137 rows each) and the stand-in. Start a run with `curl -X POST http://localhost:5678/webhook/stages/text/stage-queues` and read the counts from `http://localhost:8080/report`.
 
